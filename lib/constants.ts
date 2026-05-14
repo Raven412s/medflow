@@ -1,0 +1,107 @@
+export const PERMISSIONS = {
+  // Patient permissions
+  PATIENT_READ: "patient.read",
+  PATIENT_CREATE: "patient.create",
+  PATIENT_UPDATE: "patient.update",
+  PATIENT_DELETE: "patient.delete",
+
+  // Appointment permissions
+  APPOINTMENT_READ: "appointment.read",
+  APPOINTMENT_CREATE: "appointment.create",
+  APPOINTMENT_UPDATE: "appointment.update",
+  APPOINTMENT_DELETE: "appointment.delete",
+  APPOINTMENT_MANAGE: "appointment.manage",
+
+  // Prescription permissions
+  PRESCRIPTION_READ: "prescription.read",
+  PRESCRIPTION_WRITE: "prescription.write",
+
+  // Billing permissions
+  BILLING_READ: "billing.read",
+  BILLING_CREATE: "billing.create",
+  BILLING_MANAGE: "billing.manage",
+
+  // Lab permissions
+  LAB_READ: "lab.read",
+  LAB_CREATE: "lab.create",
+  LAB_MANAGE: "lab.manage",
+
+  // Staff permissions
+  STAFF_READ: "staff.read",
+  STAFF_MANAGE: "staff.manage",
+
+  // Settings permissions
+  SETTINGS_READ: "settings.read",
+  SETTINGS_MANAGE: "settings.manage",
+
+  // Analytics
+  ANALYTICS_READ: "analytics.read",
+} as const;
+
+export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
+
+// Default permissions per role
+export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
+  super_admin: Object.values(PERMISSIONS) as Permission[],
+
+  clinic_admin: [
+    PERMISSIONS.PATIENT_READ,
+    PERMISSIONS.PATIENT_CREATE,
+    PERMISSIONS.PATIENT_UPDATE,
+    PERMISSIONS.APPOINTMENT_READ,
+    PERMISSIONS.APPOINTMENT_CREATE,
+    PERMISSIONS.APPOINTMENT_UPDATE,
+    PERMISSIONS.APPOINTMENT_MANAGE,
+    PERMISSIONS.BILLING_READ,
+    PERMISSIONS.BILLING_CREATE,
+    PERMISSIONS.BILLING_MANAGE,
+    PERMISSIONS.STAFF_READ,
+    PERMISSIONS.STAFF_MANAGE,
+    PERMISSIONS.SETTINGS_READ,
+    PERMISSIONS.SETTINGS_MANAGE,
+    PERMISSIONS.ANALYTICS_READ,
+    PERMISSIONS.LAB_READ,
+    PERMISSIONS.LAB_CREATE,
+    PERMISSIONS.LAB_MANAGE,
+    PERMISSIONS.PRESCRIPTION_READ,
+  ],
+
+  doctor: [
+    PERMISSIONS.PATIENT_READ,
+    PERMISSIONS.PATIENT_CREATE,
+    PERMISSIONS.PATIENT_UPDATE,
+    PERMISSIONS.APPOINTMENT_READ,
+    PERMISSIONS.APPOINTMENT_UPDATE,
+    PERMISSIONS.PRESCRIPTION_READ,
+    PERMISSIONS.PRESCRIPTION_WRITE,
+    PERMISSIONS.LAB_READ,
+    PERMISSIONS.LAB_CREATE,
+    PERMISSIONS.BILLING_READ,
+  ],
+
+  receptionist: [
+    PERMISSIONS.PATIENT_READ,
+    PERMISSIONS.PATIENT_CREATE,
+    PERMISSIONS.PATIENT_UPDATE,
+    PERMISSIONS.APPOINTMENT_READ,
+    PERMISSIONS.APPOINTMENT_CREATE,
+    PERMISSIONS.APPOINTMENT_UPDATE,
+    PERMISSIONS.APPOINTMENT_MANAGE,
+    PERMISSIONS.BILLING_READ,
+    PERMISSIONS.BILLING_CREATE,
+  ],
+
+  pharmacist: [
+    PERMISSIONS.PATIENT_READ,
+    PERMISSIONS.PRESCRIPTION_READ,
+    PERMISSIONS.BILLING_READ,
+    PERMISSIONS.BILLING_CREATE,
+  ],
+
+  lab_tech: [
+    PERMISSIONS.PATIENT_READ,
+    PERMISSIONS.LAB_READ,
+    PERMISSIONS.LAB_CREATE,
+    PERMISSIONS.LAB_MANAGE,
+  ],
+};
