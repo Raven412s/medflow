@@ -100,8 +100,8 @@ const TenantSchema = new Schema<ITenant>(
 );
 
 // Indexes
-TenantSchema.index({ slug: 1 });
-TenantSchema.index({ email: 1 });
+// TenantSchema.index({ slug: 1 });
+// TenantSchema.index({ email: 1 });
 
 const Tenant: Model<ITenant> =
   mongoose.models.Tenant ?? mongoose.model<ITenant>("Tenant", TenantSchema);

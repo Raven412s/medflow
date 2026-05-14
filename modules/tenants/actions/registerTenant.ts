@@ -8,7 +8,6 @@ import { ROLE_PERMISSIONS } from "@/lib/constants";
 import { slugify } from "@/lib/utils";
 import { hash } from "bcryptjs";
 import { siteConfig } from "@/config/site";
-import mongoose from "mongoose";
 import { z } from "zod";
 
 const RegisterSchema = z.object({
@@ -34,39 +33,31 @@ export async function registerTenant(input: RegisterTenantInput) {
 
   await connectDB();
 
-  // Check if email already exists across all tenants
+  // Check if email already exists
   const existingUser = await User.findOne({ email: email.toLowerCase() });
   if (existingUser) {
     return { success: false, error: "An account with this email already exists" };
   }
-
-  const session = await mongoose.startSession();
-  session.startTransaction();
 
   try {
     // 1. Create tenant
     const slug = slugify(clinicName);
     const uniqueSlug = `${slug}-${Date.now().toString(36)}`;
 
-    const [tenant] = await Tenant.create(
-      [
-        {
-          name: clinicName,
-          slug: uniqueSlug,
-          email: email.toLowerCase(),
-          phone,
-          address: { line1: "-", city, state, pincode: "000000" },
-          subscription: {
-            plan: "free",
-            status: "trial",
-            trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
-          },
-        },
-      ],
-      { session }
-    );
+    const tenant = await Tenant.create({
+      name: clinicName,
+      slug: uniqueSlug,
+      email: email.toLowerCase(),
+      phone,
+      address: { line1: "-", city, state, pincode: "000000" },
+      subscription: {
+        plan: "free",
+        status: "trial",
+        trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      },
+    });
 
-    // 2. Seed all default roles for this tenant
+    // 2. Seed default roles
     const roleDisplayNames: Record<string, string> = {
       super_admin: "Super Admin",
       clinic_admin: "Clinic Admin",
@@ -83,41 +74,30 @@ export async function registerTenant(input: RegisterTenantInput) {
         displayName: roleDisplayNames[roleName],
         permissions: ROLE_PERMISSIONS[roleName] ?? [],
         isSystem: true,
-      })),
-      { session }
+      }))
     );
 
-    // 3. Find the clinic_admin role
+    // 3. Find clinic_admin role
     const adminRole = roleDocs.find((r) => r.name === "clinic_admin");
     if (!adminRole) throw new Error("Failed to seed roles");
 
-    // 4. Create the first admin user
+    // 4. Create first admin user
     const hashedPassword = await hash(password, 12);
 
-    await User.create(
-      [
-        {
-          tenantId: tenant._id,
-          roleId: adminRole._id,
-          name: adminName,
-          email: email.toLowerCase(),
-          password: hashedPassword,
-          role: "clinic_admin",
-          permissions: ROLE_PERMISSIONS["clinic_admin"],
-          isActive: true,
-        },
-      ],
-      { session }
-    );
-
-    await session.commitTransaction();
+    await User.create({
+      tenantId: tenant._id,
+      roleId: adminRole._id,
+      name: adminName,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      role: "clinic_admin",
+      permissions: ROLE_PERMISSIONS["clinic_admin"],
+      isActive: true,
+    });
 
     return { success: true, message: "Clinic registered successfully" };
   } catch (error) {
-    await session.abortTransaction();
     console.error("[registerTenant] error:", error);
     return { success: false, error: "Registration failed. Please try again." };
-  } finally {
-    session.endSession();
   }
 }
