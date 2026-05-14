@@ -25,7 +25,7 @@ export interface BaseDocument {
 
 export interface SessionUser {
   id: string;
-  name: string;
+  name?: string | null;
   email: string;
   tenantId: string;
   role: UserRole;
