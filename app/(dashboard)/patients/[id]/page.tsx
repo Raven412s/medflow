@@ -5,6 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/lib/utils";
 import { User, Phone, Mail, MapPin, AlertCircle, Heart } from "lucide-react";
+import { getPrescriptions } from "@/modules/prescriptions/actions/prescriptionActions";
+import { getAppointments } from "@/modules/appointments/actions/appointmentActions";
+import Link from "next/link";
+import { FileText, CalendarDays } from "lucide-react";
 
 export default async function PatientProfilePage({
     params,
@@ -13,6 +17,16 @@ export default async function PatientProfilePage({
 }) {
     const { id } = await params;
     const result = await getPatientById(id);
+
+    const [apptResult, rxResult] = await Promise.all([
+        getAppointments({ page: 1, limit: 5 }),
+        getPrescriptions({ page: 1, limit: 5, patientId: id }),
+    ]);
+
+    const patientAppointments = (apptResult.data ?? []).filter(
+        (a: { patientId: string }) => a.patientId === id
+    );
+    const patientPrescriptions = rxResult.data ?? [];
 
     if (!result.success || !result.data) notFound();
 
@@ -115,12 +129,64 @@ export default async function PatientProfilePage({
                 </Card>
             </div>
 
-            {/* Timeline placeholder */}
-            <Card className="p-5">
-                <h2 className="text-sm font-medium mb-4">Visit History</h2>
-                <p className="text-sm text-muted-foreground">
-                    No visits recorded yet. Appointments and prescriptions will appear here.
-                </p>
+            {/* Visit History */}
+            <Card className="p-5 space-y-4">
+                <h2 className="text-sm font-medium">Recent Appointments</h2>
+                {patientAppointments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No appointments yet.</p>
+                ) : (
+                    <div className="space-y-2">
+                        {patientAppointments.map((a: {
+                            _id: string;
+                            date: string;
+                            timeSlot: string;
+                            doctorName: string;
+                            status: string;
+                        }) => (
+                            <div key={a._id} className="flex items-center gap-3 text-sm py-2 border-b last:border-0">
+                                <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+                                <span>{formatDate(a.date)}</span>
+                                <span className="text-muted-foreground">{a.timeSlot}</span>
+                                <span className="text-muted-foreground">{a.doctorName}</span>
+                                <Badge variant="outline" className="text-xs capitalize ml-auto">
+                                    {a.status}
+                                </Badge>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Card>
+
+            <Card className="p-5 space-y-4">
+                <h2 className="text-sm font-medium">Recent Prescriptions</h2>
+                {patientPrescriptions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No prescriptions yet.</p>
+                ) : (
+                    <div className="space-y-2">
+                        {patientPrescriptions.map((rx: {
+                            _id: string;
+                            prescriptionNumber: string;
+                            diagnosis: string;
+                            createdAt: string;
+                            medicines: { name: string }[];
+                        }) => (
+                            <Link
+                                key={rx._id}
+                                href={`/prescriptions/${rx._id}`}
+                                className="flex items-center gap-3 text-sm py-2 border-b last:border-0 hover:text-primary transition-colors"
+                            >
+                                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                                <span className="font-mono text-xs text-muted-foreground">
+                                    {rx.prescriptionNumber}
+                                </span>
+                                <span>{rx.diagnosis}</span>
+                                <span className="text-muted-foreground ml-auto">
+                                    {formatDate(rx.createdAt)}
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+                )}
             </Card>
         </div>
     );

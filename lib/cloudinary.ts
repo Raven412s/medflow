@@ -18,6 +18,7 @@ export async function uploadFile(
           folder: `medflow/${folder}`,
           public_id: fileName,
           resource_type: "auto",
+          // Remove timestamp/signature — SDK handles this automatically
         },
         (error, result) => {
           if (error) reject(error);
