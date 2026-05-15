@@ -87,7 +87,7 @@ export function AddAppointmentDrawer({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto py-2 px-3">
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto  ">
         <SheetHeader className="mb-6">
           <SheetTitle>Book Appointment</SheetTitle>
           <SheetDescription>

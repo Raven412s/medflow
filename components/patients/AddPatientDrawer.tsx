@@ -89,7 +89,7 @@ export function AddPatientDrawer({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto py-2 px-3">
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto  ">
         <SheetHeader className="mb-6">
           <SheetTitle>Add New Patient</SheetTitle>
           <SheetDescription>
