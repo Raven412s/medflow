@@ -132,7 +132,7 @@ export function AddLabTestDrawer({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto lg:min-w-1/2">
         <SheetHeader className="mb-5">
           <SheetTitle>Add Lab Test</SheetTitle>
           <SheetDescription>
