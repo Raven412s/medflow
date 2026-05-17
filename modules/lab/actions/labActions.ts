@@ -236,7 +236,7 @@ export async function getLabOrderById(id: string) {
       .populate("patientId", "name patientId phone gender dateOfBirth")
       .populate("orderedBy", "name specialization")
       .populate("labTechId", "name")
-      .populate("tests", "name code unit normalRange price")
+      .populate("tests") // populate ALL fields — parameters included
       .lean();
 
     if (!order) return { success: false, error: "Order not found" };
