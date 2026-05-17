@@ -107,9 +107,9 @@ export function NewInvoiceDrawer({
         return sum + (Number(item.quantity) * Number(item.unitPrice) || 0);
     }, 0) ?? 0;
 
-    const gstAmount = parseFloat(((subtotal * Number(gstRate)) / 100).toFixed(2));
-    const total = parseFloat((subtotal + gstAmount - Number(discount)).toFixed(2));
-    const balance = Math.max(0, total - Number(paidAmount));
+    const gstAmount = Math.round((subtotal * Number(gstRate)) / 100);
+    const total = Math.round(subtotal + gstAmount - Number(discount));
+    const balance = Math.max(0, total - Math.round(Number(paidAmount)));
 
     // Auto-calculate row total when qty or price changes
     const updateRowTotal = useCallback(
@@ -155,7 +155,7 @@ export function NewInvoiceDrawer({
 
     return (
         <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
-            <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+            <SheetContent className="w-full sm:max-w-lg overflow-y-auto lg:min-w-1/2">
                 <SheetHeader className="mb-5">
                     <SheetTitle>New Invoice</SheetTitle>
                     <SheetDescription>
