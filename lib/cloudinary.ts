@@ -9,16 +9,20 @@ cloudinary.config({
 export async function uploadFile(
   fileBuffer: Buffer,
   folder: string,
-  fileName: string
+  fileName: string,
+  mimeType?: string
 ): Promise<string> {
+  // PDF aur non-image files ke liye raw resource type use karo
+  const isPdf = mimeType === "application/pdf";
+  const resourceType = isPdf ? "raw" : "image";
+
   return new Promise((resolve, reject) => {
     cloudinary.uploader
       .upload_stream(
         {
           folder: `medflow/${folder}`,
-          public_id: fileName,
-          resource_type: "auto",
-          // Remove timestamp/signature — SDK handles this automatically
+          public_id: isPdf ? `${fileName}.pdf` : fileName,
+          resource_type: resourceType,
         },
         (error, result) => {
           if (error) reject(error);
@@ -29,8 +33,11 @@ export async function uploadFile(
   });
 }
 
-export async function deleteFile(publicId: string): Promise<void> {
-  await cloudinary.uploader.destroy(publicId);
+export async function deleteFile(
+  publicId: string,
+  resourceType: "image" | "raw" = "image"
+): Promise<void> {
+  await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
 }
 
 export { cloudinary };

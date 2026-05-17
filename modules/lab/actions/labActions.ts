@@ -16,21 +16,23 @@ const LabTestSchema = z.object({
   name: z.string().min(1, "Test name required"),
   code: z.string().min(1, "Code required"),
   category: z.string().min(1, "Category required"),
-  parameters: z.array(
-    z.object({
-      code: z.string().min(1, "Parameter code required"),
-      name: z.string().min(1, "Parameter name required"),
-      unit: z.string().optional(),
-      normalRange: z
-        .object({
-          male: z.string().optional(),
-          female: z.string().optional(),
-          general: z.string().optional(),
-        })
-        .optional(),
-      sortOrder: z.number().default(0),
-    })
-  ).min(1, "Add at least one parameter"),
+  parameters: z
+    .array(
+      z.object({
+        code: z.string().min(1, "Parameter code required"),
+        name: z.string().min(1, "Parameter name required"),
+        unit: z.string().optional(),
+        normalRange: z
+          .object({
+            male: z.string().optional(),
+            female: z.string().optional(),
+            general: z.string().optional(),
+          })
+          .optional(),
+        sortOrder: z.number().default(0),
+      })
+    )
+    .min(1, "Add at least one parameter"),
   price: z.number().min(0),
   turnaroundHours: z.number().default(24),
 });
@@ -151,9 +153,7 @@ export async function createLabOrder(input: unknown) {
         parsed.data.prescriptionId && parsed.data.prescriptionId !== ""
           ? new mongoose.Types.ObjectId(parsed.data.prescriptionId)
           : undefined,
-      tests: parsed.data.testIds.map(
-        (id) => new mongoose.Types.ObjectId(id)
-      ),
+      tests: parsed.data.testIds.map((id) => new mongoose.Types.ObjectId(id)),
       orderNumber,
       notes: parsed.data.notes,
       status: "ordered",
@@ -249,10 +249,7 @@ export async function getLabOrderById(id: string) {
 }
 
 // UPDATE STATUS
-export async function updateLabOrderStatus(
-  id: string,
-  status: LabOrderStatus
-) {
+export async function updateLabOrderStatus(id: string, status: LabOrderStatus) {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Unauthorized" };
 
@@ -339,7 +336,12 @@ export async function enterLabResults(id: string, input: unknown) {
       );
       const buffer = Buffer.from(base64Data, "base64");
       const fileName = `lab-${id}-${Date.now()}`;
-      reportUrl = await uploadFile(buffer, "lab-reports", fileName);
+      reportUrl = await uploadFile(
+        buffer,
+        "lab-reports",
+        fileName,
+        parsed.data.reportMimeType // mimeType pass karo
+      );
       reportPublicId = `medflow/lab-reports/${fileName}`;
     }
 

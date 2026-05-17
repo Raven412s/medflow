@@ -66,7 +66,12 @@ export async function createPrescription(input: unknown) {
       );
       const buffer = Buffer.from(base64Data, "base64");
       const fileName = `rx-${Date.now()}`;
-      scannedImageUrl = await uploadFile(buffer, "prescriptions", fileName);
+      scannedImageUrl = await uploadFile(
+        buffer,
+        "prescriptions",
+        fileName,
+        parsed.data.scannedImageMimeType // add karo
+      );
       scannedImagePublicId = `medflow/prescriptions/${fileName}`;
     }
 
