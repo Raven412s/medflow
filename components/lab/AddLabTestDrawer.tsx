@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { type Resolver, useForm } from "react-hook-form";
+import { useForm, useFieldArray, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -16,17 +16,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { createLabTest } from "@/modules/lab/actions/labActions";
+import { Plus, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const ParameterSchema = z.object({
+  code: z.string().min(1, "Code required"),
+  name: z.string().min(1, "Name required"),
+  unit: z.string().optional(),
+  normalRangeGeneral: z.string().optional(),
+  normalRangeMale: z.string().optional(),
+  normalRangeFemale: z.string().optional(),
+  sortOrder: z.number().default(0),
+});
 
 const Schema = z.object({
   name: z.string().min(1, "Test name required"),
   code: z.string().min(1, "Code required"),
   category: z.string().min(1, "Category required"),
-  unit: z.string().optional(),
   price: z.number().min(0),
-  turnaroundHours: z.number().min(1),  // remove .default()
-  normalRangeMale: z.string().optional(),
-  normalRangeFemale: z.string().optional(),
-  normalRangeGeneral: z.string().optional(),
+  turnaroundHours: z.number().min(1),
+  parameters: z.array(ParameterSchema).min(1, "Add at least one parameter"),
 });
 
 type FormInput = z.infer<typeof Schema>;
@@ -37,9 +46,11 @@ const CATEGORIES = [
   "Microbiology",
   "Serology",
   "Pathology",
-  "Radiology",
   "Other",
 ];
+
+const selectClass =
+  "flex h-10 w-full rounded-md border border-input bg-background px-4 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function AddLabTestDrawer({
   open,
@@ -52,15 +63,35 @@ export function AddLabTestDrawer({
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
 
-const {
-  register,
-  handleSubmit,
-  reset,
-  formState: { errors, isSubmitting },
-} = useForm<FormInput>({
-  resolver: zodResolver(Schema) as Resolver<FormInput>,
-  defaultValues: { turnaroundHours: 24, price: 0 },
-});
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<FormInput>({
+    resolver: zodResolver(Schema) as Resolver<FormInput>,
+    defaultValues: {
+      turnaroundHours: 24,
+      price: 0,
+      parameters: [
+        {
+          code: "",
+          name: "",
+          unit: "",
+          normalRangeGeneral: "",
+          normalRangeMale: "",
+          normalRangeFemale: "",
+          sortOrder: 0,
+        },
+      ],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "parameters",
+  });
 
   function handleClose() {
     reset();
@@ -70,52 +101,68 @@ const {
 
   async function onSubmit(data: FormInput) {
     setServerError(null);
+
     const result = await createLabTest({
       name: data.name,
       code: data.code.toUpperCase(),
       category: data.category,
-      unit: data.unit,
       price: data.price,
       turnaroundHours: data.turnaroundHours,
-      normalRange: {
-        male: data.normalRangeMale,
-        female: data.normalRangeFemale,
-        general: data.normalRangeGeneral,
-      },
+      parameters: data.parameters.map((p, i) => ({
+        code: p.code.toUpperCase(),
+        name: p.name,
+        unit: p.unit,
+        normalRange: {
+          general: p.normalRangeGeneral,
+          male: p.normalRangeMale,
+          female: p.normalRangeFemale,
+        },
+        sortOrder: i,
+      })),
     });
 
     if (!result.success) {
-      setServerError(result.error ?? "Failed");
+      setServerError(result.error ?? "Failed to create test");
       return;
     }
+
     handleClose();
     onSuccess();
   }
 
-  const selectClass =
-    "flex h-10 w-full rounded-md border border-input bg-background px-4 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
   return (
     <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader className="mb-5">
           <SheetTitle>Add Lab Test</SheetTitle>
           <SheetDescription>
-            Add a test to your clinic&apos;s catalogue.
+            Add a test with its parameters to your clinic&apos;s catalogue.
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Test info */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Test Name *</Label>
-              <Input placeholder="Complete Blood Count" {...register("name")} />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+              <Input
+                placeholder="Complete Blood Count"
+                {...register("name")}
+              />
+              {errors.name && (
+                <p className="text-xs text-destructive">{errors.name.message}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Code *</Label>
-              <Input placeholder="CBC" className="uppercase" {...register("code")} />
-              {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
+              <Input
+                placeholder="CBC"
+                className="uppercase"
+                {...register("code")}
+              />
+              {errors.code && (
+                <p className="text-xs text-destructive">{errors.code.message}</p>
+              )}
             </div>
           </div>
 
@@ -127,13 +174,20 @@ const {
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-            {errors.category && <p className="text-xs text-destructive">{errors.category.message}</p>}
+            {errors.category && (
+              <p className="text-xs text-destructive">{errors.category.message}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Unit</Label>
-              <Input placeholder="mg/dL, g/dL, %" {...register("unit")} />
+              <Label>Price ₹ *</Label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="300"
+                {...register("price", { valueAsNumber: true })}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>TAT (hours)</Label>
@@ -145,34 +199,111 @@ const {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Price ₹ *</Label>
-            <Input
-              type="number"
-              min={0}
-              placeholder="250"
-              {...register("price", { valueAsNumber: true })}
-            />
-          </div>
-
           <Separator />
 
+          {/* Parameters */}
           <div className="space-y-3">
-            <p className="text-sm font-medium">Normal Ranges</p>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">General</Label>
-              <Input placeholder="e.g. 70-100" {...register("normalRangeGeneral")} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Male</Label>
-                <Input placeholder="13.5-17.5" {...register("normalRangeMale")} />
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Parameters *</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  CBC has 15+ parameters. Simple tests like RBS have 1.
+                </p>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Female</Label>
-                <Input placeholder="12.0-15.5" {...register("normalRangeFemale")} />
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() =>
+                  append({
+                    code: "",
+                    name: "",
+                    unit: "",
+                    normalRangeGeneral: "",
+                    normalRangeMale: "",
+                    normalRangeFemale: "",
+                    sortOrder: fields.length,
+                  })
+                }
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Add Parameter
+              </Button>
             </div>
+
+            {/* Column headers */}
+            <div
+              className="grid gap-2 text-xs font-medium text-muted-foreground"
+              style={{ gridTemplateColumns: "80px 1fr 70px 100px 90px 90px 28px" }}
+            >
+              <span>Code</span>
+              <span>Parameter Name</span>
+              <span>Unit</span>
+              <span>General Range</span>
+              <span>Male Range</span>
+              <span>Female Range</span>
+              <span />
+            </div>
+
+            <div className="space-y-2">
+              {fields.map((field, index) => (
+                <div
+                  key={field.id}
+                  className="grid gap-2 items-start"
+                  style={{
+                    gridTemplateColumns: "80px 1fr 70px 100px 90px 90px 28px",
+                  }}
+                >
+                  <Input
+                    placeholder="HB"
+                    className="uppercase text-xs h-9 px-2"
+                    {...register(`parameters.${index}.code`)}
+                  />
+                  <Input
+                    placeholder="Haemoglobin"
+                    className="text-xs h-9 px-2"
+                    {...register(`parameters.${index}.name`)}
+                  />
+                  <Input
+                    placeholder="g/dL"
+                    className="text-xs h-9 px-2"
+                    {...register(`parameters.${index}.unit`)}
+                  />
+                  <Input
+                    placeholder="—"
+                    className="text-xs h-9 px-2"
+                    {...register(`parameters.${index}.normalRangeGeneral`)}
+                  />
+                  <Input
+                    placeholder="13.5-17.5"
+                    className="text-xs h-9 px-2"
+                    {...register(`parameters.${index}.normalRangeMale`)}
+                  />
+                  <Input
+                    placeholder="12.0-15.5"
+                    className="text-xs h-9 px-2"
+                    {...register(`parameters.${index}.normalRangeFemale`)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fields.length > 1 && remove(index)}
+                    className={cn(
+                      "flex items-center justify-center w-7 h-9 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors",
+                      fields.length === 1 && "opacity-30 cursor-not-allowed"
+                    )}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {errors.parameters && (
+              <p className="text-xs text-destructive">
+                {errors.parameters.message ?? "Check parameter fields"}
+              </p>
+            )}
           </div>
 
           {serverError && (
@@ -182,7 +313,12 @@ const {
           )}
 
           <div className="flex gap-3 pt-1">
-            <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={handleClose}
+            >
               Cancel
             </Button>
             <Button type="submit" className="flex-1" disabled={isSubmitting}>

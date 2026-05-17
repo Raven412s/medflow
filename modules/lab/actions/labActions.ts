@@ -16,14 +16,21 @@ const LabTestSchema = z.object({
   name: z.string().min(1, "Test name required"),
   code: z.string().min(1, "Code required"),
   category: z.string().min(1, "Category required"),
-  unit: z.string().optional(),
-  normalRange: z
-    .object({
-      male: z.string().optional(),
-      female: z.string().optional(),
-      general: z.string().optional(),
+  parameters: z.array(
+    z.object({
+      code: z.string().min(1, "Parameter code required"),
+      name: z.string().min(1, "Parameter name required"),
+      unit: z.string().optional(),
+      normalRange: z
+        .object({
+          male: z.string().optional(),
+          female: z.string().optional(),
+          general: z.string().optional(),
+        })
+        .optional(),
+      sortOrder: z.number().default(0),
     })
-    .optional(),
+  ).min(1, "Add at least one parameter"),
   price: z.number().min(0),
   turnaroundHours: z.number().default(24),
 });
@@ -286,18 +293,24 @@ export async function updateLabOrderStatus(
   }
 }
 
-// ENTER RESULTS
+// ENTER RESULTS — parameter-wise with snapshots
 const ResultEntrySchema = z.object({
   results: z.array(
     z.object({
       testId: z.string(),
       testName: z.string(),
       testCode: z.string(),
-      value: z.string().min(1, "Value required"),
-      unit: z.string().optional(),
-      normalRange: z.string().optional(),
-      isAbnormal: z.boolean().default(false),
-      notes: z.string().optional(),
+      parameterResults: z.array(
+        z.object({
+          parameterCode: z.string(),
+          parameterName: z.string(),
+          value: z.string().min(1, "Value required"),
+          unit: z.string().default(""),
+          normalRange: z.string().default(""),
+          isAbnormal: z.boolean().default(false),
+          notes: z.string().optional(),
+        })
+      ),
     })
   ),
   reportBase64: z.string().optional(),
@@ -331,10 +344,7 @@ export async function enterLabResults(id: string, input: unknown) {
     }
 
     const update: Record<string, unknown> = {
-      results: parsed.data.results.map((r) => ({
-        ...r,
-        testId: new mongoose.Types.ObjectId(r.testId),
-      })),
+      results: parsed.data.results,
       status: "completed",
       completedAt: new Date(),
     };

@@ -7,15 +7,23 @@ export type LabOrderStatus =
   | "completed"
   | "cancelled";
 
-export interface ILabResult {
-  testId: mongoose.Types.ObjectId;
-  testName: string;
-  testCode: string;
+// Snapshot of one parameter's result
+export interface IParameterResult {
+  parameterCode: string;
+  parameterName: string;
   value: string;
-  unit?: string;
-  normalRange?: string;
+  unit: string;          // snapshot from LabTest at time of result entry
+  normalRange: string;   // snapshot — won't break if test range changes later
   isAbnormal: boolean;
   notes?: string;
+}
+
+// One test's complete result (may have multiple parameters)
+export interface ILabResult {
+  testId: mongoose.Types.ObjectId;
+  testName: string;      // snapshot
+  testCode: string;      // snapshot
+  parameterResults: IParameterResult[];
 }
 
 export interface ILabOrder extends Document {
@@ -24,32 +32,41 @@ export interface ILabOrder extends Document {
   patientId: mongoose.Types.ObjectId;
   appointmentId?: mongoose.Types.ObjectId;
   prescriptionId?: mongoose.Types.ObjectId;
-  orderedBy: mongoose.Types.ObjectId;    // doctor userId
-  labTechId?: mongoose.Types.ObjectId;   // assigned lab tech
+  orderedBy: mongoose.Types.ObjectId;
+  labTechId?: mongoose.Types.ObjectId;
   orderNumber: string;
-  tests: mongoose.Types.ObjectId[];      // LabTest ids
+  tests: mongoose.Types.ObjectId[];
   status: LabOrderStatus;
   sampleCollectedAt?: Date;
   processingStartedAt?: Date;
   completedAt?: Date;
   results: ILabResult[];
-  reportUrl?: string;          // Cloudinary URL
+  reportUrl?: string;
   reportPublicId?: string;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
+const ParameterResultSchema = new Schema<IParameterResult>(
+  {
+    parameterCode: { type: String, required: true },
+    parameterName: { type: String, required: true },
+    value: { type: String, required: true },
+    unit: { type: String, default: "" },
+    normalRange: { type: String, default: "" },
+    isAbnormal: { type: Boolean, default: false },
+    notes: { type: String },
+  },
+  { _id: false }
+);
+
 const LabResultSchema = new Schema<ILabResult>(
   {
     testId: { type: Schema.Types.ObjectId, ref: "LabTest", required: true },
     testName: { type: String, required: true },
     testCode: { type: String, required: true },
-    value: { type: String, required: true },
-    unit: { type: String },
-    normalRange: { type: String },
-    isAbnormal: { type: Boolean, default: false },
-    notes: { type: String },
+    parameterResults: { type: [ParameterResultSchema], default: [] },
   },
   { _id: false }
 );
@@ -79,7 +96,13 @@ const LabOrderSchema = new Schema<ILabOrder>(
     tests: [{ type: Schema.Types.ObjectId, ref: "LabTest" }],
     status: {
       type: String,
-      enum: ["ordered", "sample_collected", "processing", "completed", "cancelled"],
+      enum: [
+        "ordered",
+        "sample_collected",
+        "processing",
+        "completed",
+        "cancelled",
+      ],
       default: "ordered",
     },
     sampleCollectedAt: { type: Date },
@@ -99,7 +122,6 @@ LabOrderSchema.index({ tenantId: 1, status: 1 });
 LabOrderSchema.index({ tenantId: 1, createdAt: -1 });
 
 const LabOrder: Model<ILabOrder> =
-  mongoose.models.LabOrder ??
-  mongoose.model<ILabOrder>("LabOrder", LabOrderSchema);
+  mongoose.models.LabOrder ?? mongoose.model<ILabOrder>("LabOrder", LabOrderSchema);
 
 export default LabOrder;
