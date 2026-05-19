@@ -17,7 +17,7 @@ import { AddPatientDrawer } from "@/components/patients/AddPatientDrawer";
 import { getPatients } from "@/modules/patients/actions/patientActions";
 import { PatientRow } from "@/modules/patients/types";
 import { formatDate } from "@/lib/utils";
-import { Search, UserPlus, ChevronRight } from "lucide-react";
+import { Search, UserPlus, ChevronRight, Users } from "lucide-react";
 
 interface PatientsClientProps {
   initialPatients: PatientRow[];
@@ -99,8 +99,18 @@ export function PatientsClient({
               </TableRow>
             ) : patients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-sm">
-                  {search ? "No patients found matching your search." : "No patients yet. Add your first patient."}
+                <TableCell colSpan={7} className="py-16">
+                  <div className="text-center space-y-2">
+                    <Users className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {search ? "No patients found" : "No patients yet"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {search
+                        ? `No results for "${search}"`
+                        : "Add your first patient to get started"}
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

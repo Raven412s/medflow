@@ -4,11 +4,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/lib/utils";
-import { User, Phone, Mail, MapPin, AlertCircle, Heart } from "lucide-react";
+import { User, Phone, Mail, MapPin, AlertCircle, Heart, FlaskConical } from "lucide-react";
 import { getPrescriptions } from "@/modules/prescriptions/actions/prescriptionActions";
 import { getAppointments } from "@/modules/appointments/actions/appointmentActions";
 import Link from "next/link";
 import { FileText, CalendarDays } from "lucide-react";
+
+import LabOrder from "@/modules/lab/models/LabOrder";
+import RadiologyOrder from "@/modules/radiology/models/RadiologyOrder";
+import mongoose from "mongoose";
+import { connectDB } from "@/lib/db";
+import { Scan } from "lucide-react";
 
 export default async function PatientProfilePage({
     params,
@@ -17,20 +23,38 @@ export default async function PatientProfilePage({
 }) {
     const { id } = await params;
     const result = await getPatientById(id);
+    if (!result.success || !result.data) notFound();
+    const p = result.data;
 
-    const [apptResult, rxResult] = await Promise.all([
+    await connectDB();
+    const tid = new mongoose.Types.ObjectId(p.tenantId);
+    const pid = new mongoose.Types.ObjectId(id)
+
+    const [apptResult, rxResult, labResult, radResult] = await Promise.all([
         getAppointments({ page: 1, limit: 5 }),
         getPrescriptions({ page: 1, limit: 5, patientId: id }),
+        LabOrder.find({ tenantId: tid, patientId: pid })
+            .populate("orderedBy", "name")
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .lean(),
+        RadiologyOrder.find({ tenantId: tid, patientId: pid })
+            .populate("orderedBy", "name")
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .lean(),
     ]);
 
     const patientAppointments = (apptResult.data ?? []).filter(
         (a: { patientId: string }) => a.patientId === id
     );
     const patientPrescriptions = rxResult.data ?? [];
+    const patientLabOrders = JSON.parse(JSON.stringify(labResult));
+    const patientRadOrders = JSON.parse(JSON.stringify(radResult));
 
     if (!result.success || !result.data) notFound();
 
-    const p = result.data;
+
 
     const dob = new Date(p.dateOfBirth);
     const today = new Date();
@@ -183,6 +207,101 @@ export default async function PatientProfilePage({
                                 <span className="text-muted-foreground ml-auto">
                                     {formatDate(rx.createdAt)}
                                 </span>
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </Card>
+
+            {/* Lab Orders */}
+            <Card className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-medium">Recent Lab Orders</h2>
+                    <Link href="/lab" className="text-xs text-muted-foreground hover:text-primary">
+                        View all →
+                    </Link>
+                </div>
+                {patientLabOrders.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No lab orders yet.</p>
+                ) : (
+                    <div className="space-y-0">
+                        {patientLabOrders.map((order: {
+                            _id: string;
+                            orderNumber: string;
+                            status: string;
+                            createdAt: string;
+                            tests: { name: string; code: string }[];
+                        }) => (
+                            <Link
+                                key={order._id}
+                                href={`/lab/${order._id}`}
+                                className="flex items-center gap-3 py-2.5 border-b last:border-0 hover:text-primary transition-colors"
+                            >
+                                <FlaskConical className="w-4 h-4 text-muted-foreground shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-mono text-xs text-muted-foreground">
+                                        {order.orderNumber}
+                                    </p>
+                                    <p className="text-sm truncate">
+                                        {order.tests?.map((t: { code: string }) => t.code).join(", ")}
+                                    </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <Badge variant="outline" className="text-xs capitalize">
+                                        {order.status.replace("_", " ")}
+                                    </Badge>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        {formatDate(order.createdAt)}
+                                    </p>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </Card>
+
+            {/* Radiology Orders */}
+            <Card className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-medium">Recent Radiology</h2>
+                    <Link href="/radiology" className="text-xs text-muted-foreground hover:text-primary">
+                        View all →
+                    </Link>
+                </div>
+                {patientRadOrders.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No radiology orders yet.</p>
+                ) : (
+                    <div className="space-y-0">
+                        {patientRadOrders.map((order: {
+                            _id: string;
+                            orderNumber: string;
+                            imagingType: string;
+                            bodyPart: string;
+                            status: string;
+                            createdAt: string;
+                        }) => (
+                            <Link
+                                key={order._id}
+                                href={`/radiology/${order._id}`}
+                                className="flex items-center gap-3 py-2.5 border-b last:border-0 hover:text-primary transition-colors"
+                            >
+                                <Scan className="w-4 h-4 text-muted-foreground shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-mono text-xs text-muted-foreground">
+                                        {order.orderNumber}
+                                    </p>
+                                    <p className="text-sm truncate">
+                                        {order.imagingType?.replace("_", " ").toUpperCase()} — {order.bodyPart}
+                                    </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <Badge variant="outline" className="text-xs capitalize">
+                                        {order.status.replace("_", " ")}
+                                    </Badge>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        {formatDate(order.createdAt)}
+                                    </p>
+                                </div>
                             </Link>
                         ))}
                     </div>

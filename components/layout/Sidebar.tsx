@@ -144,8 +144,15 @@ export function Sidebar({ role }: SidebarProps) {
 
       {/* Bottom role badge */}
       <div className="px-4 py-4 border-t">
-        <div className="text-xs text-muted-foreground capitalize">
-          {role.replace("_", " ")}
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
+            {role.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-xs font-medium capitalize">
+              {role.replace("_", " ")}
+            </p>
+          </div>
         </div>
       </div>
     </aside>
