@@ -10,4 +10,4 @@ export const openrouter = new OpenAI({
 });
 
 export const AI_MODEL =
-  process.env.OPENROUTER_MODEL ?? "meta-llama/llama-3.1-8b-instruct:free";
+  process.env.OPENROUTER_MODEL ?? "openai/gpt-oss-120b:free";

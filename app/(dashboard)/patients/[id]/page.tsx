@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { formatDate } from "@/lib/utils";
-import { User, Phone, Mail, MapPin, AlertCircle, Heart, FlaskConical } from "lucide-react";
+import { cn, formatDate } from "@/lib/utils";
+import { User, Phone, Mail, MapPin, AlertCircle, Heart, FlaskConical, Package } from "lucide-react";
 import { getPrescriptions } from "@/modules/prescriptions/actions/prescriptionActions";
 import { getAppointments } from "@/modules/appointments/actions/appointmentActions";
 import Link from "next/link";
@@ -15,6 +15,10 @@ import RadiologyOrder from "@/modules/radiology/models/RadiologyOrder";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { Scan } from "lucide-react";
+
+import { PatientSummaryButton } from "@/components/patients/PatientSummaryButton";
+import Dispense from "@/modules/pharmacy/models/Dispense";
+
 
 export default async function PatientProfilePage({
     params,
@@ -30,7 +34,7 @@ export default async function PatientProfilePage({
     const tid = new mongoose.Types.ObjectId(p.tenantId);
     const pid = new mongoose.Types.ObjectId(id)
 
-    const [apptResult, rxResult, labResult, radResult] = await Promise.all([
+    const [apptResult, rxResult, labResult, radResult, dispenseResult] = await Promise.all([
         getAppointments({ page: 1, limit: 5 }),
         getPrescriptions({ page: 1, limit: 5, patientId: id }),
         LabOrder.find({ tenantId: tid, patientId: pid })
@@ -43,6 +47,10 @@ export default async function PatientProfilePage({
             .sort({ createdAt: -1 })
             .limit(5)
             .lean(),
+        Dispense.find({ tenantId: tid, patientId: pid })
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .lean(),
     ]);
 
     const patientAppointments = (apptResult.data ?? []).filter(
@@ -51,7 +59,8 @@ export default async function PatientProfilePage({
     const patientPrescriptions = rxResult.data ?? [];
     const patientLabOrders = JSON.parse(JSON.stringify(labResult));
     const patientRadOrders = JSON.parse(JSON.stringify(radResult));
-
+    
+    const patientDispenses = JSON.parse(JSON.stringify(dispenseResult));
     if (!result.success || !result.data) notFound();
 
 
@@ -85,8 +94,10 @@ export default async function PatientProfilePage({
                             {age} years old · DOB {formatDate(p.dateOfBirth)}
                         </span>
                     </div>
+                    <PatientSummaryButton patientId={id} />
                 </div>
             </div>
+
 
             <Separator />
 
@@ -303,6 +314,54 @@ export default async function PatientProfilePage({
                                     </p>
                                 </div>
                             </Link>
+                        ))}
+                    </div>
+                )}
+            </Card>
+
+            {/* Pharmacy */}
+            <Card className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-medium">Pharmacy Purchases</h2>
+                    <Link href="/pharmacy" className="text-xs text-muted-foreground hover:text-primary">
+                        View all →
+                    </Link>
+                </div>
+                {patientDispenses.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No pharmacy purchases yet.</p>
+                ) : (
+                    <div className="space-y-0">
+                        {patientDispenses.map((d: {
+                            _id: string;
+                            dispenseNumber: string;
+                            items: { medicineName: string; quantity: number }[];
+                            totalAmount: number;
+                            paymentStatus: string;
+                            createdAt: string;
+                        }) => (
+                            <div key={d._id}
+                                className="flex items-center gap-3 py-2.5 border-b last:border-0 text-sm">
+                                <Package className="w-4 h-4 text-muted-foreground shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-mono text-xs text-muted-foreground">
+                                        {d.dispenseNumber}
+                                    </p>
+                                    <p className="text-sm truncate">
+                                        {d.items?.map((i) => `${i.medicineName} ×${i.quantity}`).join(", ")}
+                                    </p>
+                                </div>
+                                <div className="text-right shrink-0 space-y-0.5">
+                                    <p className="font-medium">₹{d.totalAmount.toLocaleString("en-IN")}</p>
+                                    <Badge variant="outline" className={cn(
+                                        "text-xs capitalize",
+                                        d.paymentStatus === "paid"
+                                            ? "bg-green-50 text-green-700 border-green-200"
+                                            : "bg-amber-50 text-amber-700 border-amber-200"
+                                    )}>
+                                        {d.paymentStatus}
+                                    </Badge>
+                                </div>
+                            </div>
                         ))}
                     </div>
                 )}

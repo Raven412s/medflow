@@ -5,34 +5,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
-    createPrescription,
-    getPatientAppointments,
-    getPrescriptionDoctors,
-    quickRegisterPatient,
-    searchPatients,
+  createPrescription,
+  getPatientAppointments,
+  getPrescriptionDoctors,
+  quickRegisterPatient,
+  searchPatients,
 } from "@/modules/prescriptions/actions/prescriptionActions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-    Check,
-    ChevronLeft,
-    ChevronRight,
-    Plus,
-    Search,
-    Trash2,
-    Upload,
-    UserPlus,
-    X,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+  UserPlus,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
+import { AISuggestionPanel } from "@/components/prescriptions/AISuggestionPanel";
+import type { MedicineSuggestion } from "@/modules/prescriptions/actions/aiActions";
+import { Textarea } from "../ui/textarea";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Patient {
@@ -152,20 +155,20 @@ export function NewPrescriptionWizard({
 
   // Reset on close
   function handleClose() {
-  setStep(1);
-  setPatientSearch("");
-  setSearchResults([]);
-  setSelectedPatient(null);
-  setShowQuickRegister(false);
-  setImagePreview(null);
-  setImageBase64(null);
-  setServerError(null);
-  qrForm.reset();
-  rxForm.reset({
-    medicines: [{ name: "", dose: "", frequency: "", duration: "", instructions: "" }],
-  });
-  onClose();
-}
+    setStep(1);
+    setPatientSearch("");
+    setSearchResults([]);
+    setSelectedPatient(null);
+    setShowQuickRegister(false);
+    setImagePreview(null);
+    setImageBase64(null);
+    setServerError(null);
+    qrForm.reset();
+    rxForm.reset({
+      medicines: [{ name: "", dose: "", frequency: "", duration: "", instructions: "" }],
+    });
+    onClose();
+  }
 
   // Load doctors + appointments when entering step 2
   useEffect(() => {
@@ -247,6 +250,29 @@ export function NewPrescriptionWizard({
     }
   }
 
+  const watchedDiagnosis = rxForm.watch("diagnosis");
+
+  const patientAge = selectedPatient?.dateOfBirth
+    ? Math.floor(
+      (Date.now() - new Date(selectedPatient.dateOfBirth).getTime()) /
+      (1000 * 60 * 60 * 24 * 365.25)
+    )
+    : undefined;
+
+  function handleAIApply(medicines: MedicineSuggestion[]) {
+    // Replace existing medicine rows with AI suggestions
+    rxForm.setValue(
+      "medicines",
+      medicines.map((m) => ({
+        name: m.name,
+        dose: m.dose,
+        frequency: m.frequency,
+        duration: m.duration,
+        instructions: m.instructions ?? "",
+      }))
+    );
+  }
+
   return (
     <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
       <SheetContent
@@ -266,8 +292,8 @@ export function NewPrescriptionWizard({
                     step === s
                       ? "bg-primary text-primary-foreground border-primary"
                       : step > s
-                      ? "bg-green-500 text-white border-green-500"
-                      : "bg-muted text-muted-foreground border-border"
+                        ? "bg-green-500 text-white border-green-500"
+                        : "bg-muted text-muted-foreground border-border"
                   )}>
                     {step > s ? <Check className="w-3 h-3" /> : s}
                   </div>
@@ -619,7 +645,7 @@ export function NewPrescriptionWizard({
                   {/* Diagnosis */}
                   <div className="space-y-1.5">
                     <Label>Diagnosis *</Label>
-                    <Input
+                    <Textarea
                       placeholder="e.g. Viral fever, Hypertension, Type 2 Diabetes"
                       {...rxForm.register("diagnosis")}
                     />
@@ -629,6 +655,16 @@ export function NewPrescriptionWizard({
                       </p>
                     )}
                   </div>
+
+                  {/* AI Suggestion Panel */}
+                  {watchedDiagnosis && watchedDiagnosis.length > 3 && (
+                    <AISuggestionPanel
+                      diagnosis={watchedDiagnosis}
+                      patientAge={patientAge}
+                      patientGender={selectedPatient?.gender}
+                      onApply={handleAIApply}
+                    />
+                  )}
 
                   <Separator />
 
