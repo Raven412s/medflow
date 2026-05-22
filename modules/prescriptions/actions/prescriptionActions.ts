@@ -55,6 +55,16 @@ export async function createPrescription(input: unknown) {
   await connectDB();
 
   try {
+    // Validate patient exists
+    const patient = await Patient.findOne({
+      _id: new mongoose.Types.ObjectId(parsed.data.patientId),
+      tenantId: session.user.tenantId,
+    });
+
+    if (!patient) {
+      return { success: false, error: "Patient not found" };
+    }
+
     let scannedImageUrl: string | undefined;
     let scannedImagePublicId: string | undefined;
 
@@ -211,7 +221,7 @@ export async function searchPatients(query: string) {
         { patientId: { $regex: query, $options: "i" } },
       ],
     })
-      .select("name patientId phone gender dateOfBirth")
+      .select("_id name patientId phone gender dateOfBirth")
       .limit(10)
       .lean();
 

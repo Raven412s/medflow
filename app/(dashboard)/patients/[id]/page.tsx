@@ -17,6 +17,7 @@ import { connectDB } from "@/lib/db";
 import { Scan } from "lucide-react";
 
 import { PatientSummaryButton } from "@/components/patients/PatientSummaryButton";
+import { DashboardBreadcrumb } from "@/components/layout/DashboardBreadcrumb";
 import Dispense from "@/modules/pharmacy/models/Dispense";
 
 
@@ -73,6 +74,12 @@ export default async function PatientProfilePage({
 
     return (
         <div className="space-y-6 max-w-4xl">
+            <DashboardBreadcrumb
+                sectionHref="/patients"
+                sectionLabel="Patients"
+                detailLabel={p.name}
+            />
+
             {/* Header */}
             <div className="flex items-start gap-4">
                 <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">

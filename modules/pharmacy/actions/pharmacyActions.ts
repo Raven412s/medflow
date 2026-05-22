@@ -3,6 +3,7 @@
 import { connectDB } from "@/lib/db";
 import Medicine from "@/modules/pharmacy/models/Medicine";
 import Dispense from "@/modules/pharmacy/models/Dispense";
+import Patient from "@/modules/patients/models/Patient";
 import { auth } from "@/auth";
 import { createAuditLog } from "@/modules/audit-logs/actions/createAuditLog";
 import { revalidatePath } from "next/cache";
@@ -194,6 +195,16 @@ export async function createDispense(input: unknown) {
   await connectDB();
 
   try {
+    // Validate patient exists
+    const patient = await Patient.findOne({
+      _id: new mongoose.Types.ObjectId(parsed.data.patientId),
+      tenantId: new mongoose.Types.ObjectId(session.user.tenantId),
+    });
+
+    if (!patient) {
+      return { success: false, error: "Patient not found" };
+    }
+
     const totalAmount = parsed.data.items.reduce(
       (sum, item) => sum + item.total, 0
     );

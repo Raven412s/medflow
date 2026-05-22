@@ -5,12 +5,12 @@ import { NewDispenseDrawer } from "@/components/pharmacy/NewDispenseDrawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn, formatDate } from "@/lib/utils";
@@ -37,7 +37,11 @@ interface Medicine {
 interface Dispense {
   _id: string;
   dispenseNumber: string;
-  patientId: { name: string; patientId: string };
+  patientId: {
+    _id: string;
+    name: string;
+    patientId: string;
+  };
   dispensedBy: { name: string };
   items: { medicineName: string; quantity: number; total: number }[];
   totalAmount: number;
@@ -269,8 +273,7 @@ export function PharmacyClient({
                   </TableRow>
                 ) : (
                   dispenses.map((d) => (
-                    <TableRow key={d._id} className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => router.push(`/patients/${d.patientId?.patientId ?? ""}`)}>
+                    <TableRow key={d._id} >
                       <TableCell className="font-mono text-xs text-muted-foreground">
                         {d.dispenseNumber}
                       </TableCell>
@@ -307,7 +310,7 @@ export function PharmacyClient({
                       <TableCell className="text-sm text-muted-foreground">
                         {formatDate(d.createdAt)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/patients/${d.patientId._id}`)}>
                         <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </TableCell>
                     </TableRow>

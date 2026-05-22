@@ -1,22 +1,23 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useForm, useFieldArray, type Resolver } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import {
-  Sheet, SheetContent, SheetHeader,
-  SheetTitle, SheetDescription,
-} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
+import {
+  Sheet, SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 import { createDispense } from "@/modules/pharmacy/actions/pharmacyActions";
 import { searchPatients } from "@/modules/prescriptions/actions/prescriptionActions";
-import { Search, Plus, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus, Search, Trash2 } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { useFieldArray, useForm, type Resolver } from "react-hook-form";
+import { z } from "zod";
 
 const Schema = z.object({
   patientId: z.string().min(1, "Patient required"),

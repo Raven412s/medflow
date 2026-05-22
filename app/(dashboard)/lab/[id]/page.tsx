@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { LabResultsEntry } from "@/components/lab/LabResultsEntry";
+import { DashboardBreadcrumb } from "@/components/layout/DashboardBreadcrumb";
 
 const STATUS_STYLES = {
     ordered: "bg-blue-50 text-blue-700 border-blue-200",
@@ -36,6 +37,12 @@ export default async function LabOrderDetailPage({
 
     return (
         <div className="space-y-6 max-w-4xl">
+            <DashboardBreadcrumb
+                sectionHref="/lab"
+                sectionLabel="Lab"
+                detailLabel={order.orderNumber}
+            />
+
             {/* Header */}
             <div className="flex items-start justify-between flex-wrap gap-4">
                 <div>

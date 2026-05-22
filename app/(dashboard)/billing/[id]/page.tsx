@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { PaymentRecorder } from "@/components/billing/PaymentRecorder";
+import { DashboardBreadcrumb } from "@/components/layout/DashboardBreadcrumb";
 
 const STATUS_STYLES = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
@@ -27,6 +28,12 @@ export default async function InvoiceDetailPage({
 
   return (
     <div className="space-y-6 max-w-3xl">
+      <DashboardBreadcrumb
+        sectionHref="/billing"
+        sectionLabel="Billing"
+        detailLabel={inv.invoiceNumber}
+      />
+
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/lib/utils";
 import { FileText, User, Stethoscope, ImageIcon } from "lucide-react";
+import { DashboardBreadcrumb } from "@/components/layout/DashboardBreadcrumb";
 
 export default async function PrescriptionDetailPage({
   params,
@@ -19,6 +20,12 @@ export default async function PrescriptionDetailPage({
 
   return (
     <div className="space-y-6 max-w-4xl">
+      <DashboardBreadcrumb
+        sectionHref="/prescriptions"
+        sectionLabel="Prescriptions"
+        detailLabel={rx.prescriptionNumber}
+      />
+
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
